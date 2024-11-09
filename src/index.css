@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+::-webkit-scrollbar {
+    display: none;
+}
+
+.chatpeople {
+    height: calc(100vh - 65px);
+}
+
+.conversationbody {
+    height: calc(100vh - 120px);
+}
+
+.conversationsection {
+    width: calc(100% - 350px);
+}
+
+.slide-in {
+    transform: translateY(-100%);
+}
+
+.slide-in.visible {
+    transform: translateY(0);
+}
