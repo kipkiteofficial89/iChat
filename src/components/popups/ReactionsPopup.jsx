@@ -8,6 +8,67 @@ import { socket } from '../../main';
 import { useGetUserQuery } from '../../services/iChatUsersApi';
 import { iChatMessagesApi } from '../../services/iChatMessagesApi';
 
+const ReactPeople = ({ name, profile, react, userId, genc_id }) => {
+    const { userid } = useParams();
+    const dispatch = useDispatch();
+    const { data: loginUser } = useGetUserQuery();
+    const roomId = [loginUser?.user?._id, userid].sort().join('_');
+    const { setIsReactBox } = useContext(DataContext);
+
+    const removeReaction = () => {
+        socket.emit('removeReact', {
+            userId,
+            genc_id,
+            roomId
+        })
+    }
+
+    useEffect(() => {
+        socket.on('removeReactServer', (data) => {
+            dispatch(
+                iChatMessagesApi.util.updateQueryData('getConversation', userid, (draft) => {
+                    const message = draft.find((msg) => msg.genc_id === data.genc_id);
+                    if (message) {
+                        const reactionIndex = message.reactions.findIndex((r) => r.userId === data.userId);
+                        message.reactions.splice(reactionIndex, 1);
+                        setIsReactBox(false);
+                    }
+                })
+            )
+        })
+    }, []);
+
+    return (
+        <div className='flex items-center justify-between hover:cursor-pointer'>
+            <div className='flex items-center gap-3'>
+                <img className='w-10 h-10 rounded-full object-cover' src={profile} alt="" />
+                <div className='flex flex-col text-zinc-200'>
+                    <p className='text-md font-medium'>{name}</p>
+                    {userId !== userid && <p onClick={removeReaction} className='text-xs text-zinc-400'>Click to remove</p>}
+                </div>
+            </div>
+            <p className='text-2xl'>{react}</p>
+        </div>
+    )
+}
+
+const ReactedPeople = ({ items }) => {
+    return (
+        items.map((item, index) => {
+            return (
+                <ReactPeople
+                    key={index}
+                    name={item?.name}
+                    profile={item?.profile}
+                    react={item?.react}
+                    userId={item?.userId}
+                    genc_id={item?.genc_id}
+                />
+            )
+        })
+    )
+}
+
 function ReactionsPopup() {
     const [activeTab, setActiveTab] = useState("All");
     const { setIsReactBox, reactions } = useContext(DataContext);
@@ -15,67 +76,6 @@ function ReactionsPopup() {
         if (e.target.classList.contains('parent')) {
             setIsReactBox(false);
         }
-    }
-
-    const ReactPeople = ({ name, profile, react, userId, genc_id }) => {
-        const { userid } = useParams();
-        const dispatch = useDispatch();
-        const { data: loginUser } = useGetUserQuery();
-        const roomId = [loginUser?.user?._id, userid].sort().join('_');
-        const { setIsReactBox } = useContext(DataContext);
-
-        const removeReaction = () => {
-            socket.emit('removeReact', {
-                userId,
-                genc_id,
-                roomId
-            })
-        }
-
-        useEffect(() => {
-            socket.on('removeReactServer', (data) => {
-                dispatch(
-                    iChatMessagesApi.util.updateQueryData('getConversation', userid, (draft) => {
-                        const message = draft.find((msg) => msg.genc_id === data.genc_id);
-                        if (message) {
-                            const reactionIndex = message.reactions.findIndex((r) => r.userId === data.userId);
-                            message.reactions.splice(reactionIndex, 1);
-                            setIsReactBox(false);
-                        }
-                    })
-                )
-            })
-        }, [dispatch, userid]);
-
-        return (
-            <div className='flex items-center justify-between hover:cursor-pointer'>
-                <div className='flex items-center gap-3'>
-                    <img className='w-10 h-10 rounded-full object-cover' src={profile} alt="" />
-                    <div className='flex flex-col text-zinc-200'>
-                        <p className='text-md font-medium'>{name}</p>
-                        {userId !== userid && <p onClick={removeReaction} className='text-xs text-zinc-400'>Click to remove</p>}
-                    </div>
-                </div>
-                <p className='text-2xl'>{react}</p>
-            </div>
-        )
-    }
-
-    const ReactedPeople = ({ items }) => {
-        return (
-            items.map((item, index) => {
-                return (
-                    <ReactPeople
-                        key={index}
-                        name={item?.name}
-                        profile={item?.profile}
-                        react={item?.react}
-                        userId={item?.userId}
-                        genc_id={item?.genc_id}
-                    />
-                )
-            })
-        )
     }
 
     const liked = reactions.filter((item) => item?.react === '👍');
