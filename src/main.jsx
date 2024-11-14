@@ -9,7 +9,11 @@ import { Provider } from 'react-redux'
 import { Toaster } from 'react-hot-toast';
 import { io } from 'socket.io-client';
 
-const SOCKET_SERVER_URL = "http://localhost:8080/";
+const SOCKET_SERVER_URL =
+  import.meta.env.MODE === 'development'
+    ? "http://localhost:8080/"
+    : "https://ichat-server.vercel.app/";
+
 export const socket = io(SOCKET_SERVER_URL, {
   transports: ['websocket']
 });
