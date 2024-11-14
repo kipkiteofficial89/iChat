@@ -1,12 +1,16 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { setupListeners } from '@reduxjs/toolkit/query'
-import { iChatApi } from './services/iChatApi'
+import { iChatUsersApi } from './services/iChatUsersApi'
+import { iChatMessagesApi } from './services/iChatMessagesApi'
 
 export const store = configureStore({
     reducer: {
-        [iChatApi.reducerPath]: iChatApi.reducer,
+        [iChatUsersApi.reducerPath]: iChatUsersApi.reducer,
+        [iChatMessagesApi.reducerPath]: iChatMessagesApi.reducer
     },
     middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware().concat(iChatApi.middleware),
+        getDefaultMiddleware()
+            .concat(iChatUsersApi.middleware)
+            .concat(iChatMessagesApi.middleware),
 })
 setupListeners(store.dispatch)

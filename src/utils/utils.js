@@ -85,62 +85,8 @@ export const messages = [
         receiver: 'sdsfsffsf7sg'
     },
     {
-        id: 'sadg7as6tfuy4grewfuy76s',
-        msg: 'Hello, Shuvo!',
-        sender: '7dyg7fduydef',
-        receiver: 'sdsfsffsf7sg'
-    },
-    {
-        id: 'f45usydtf887uydfgfgudyg',
-        msg: 'How are you?',
-        sender: '7dyg7fduydef',
-        receiver: 'sdsfsffsf7sg'
-    },
-    {
-        id: 'sadg7as6tfuy4grewfuy76s',
-        msg: 'Hello, Shuvo!',
-        sender: '7dyg7fduydef',
-        receiver: 'sdsfsffsf7sg'
-    },
-    {
         id: 'f45usydtf887uydfgfgudyg',
         msg: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Eos libero perspiciatis ut. Fugiat nam, quibusdam nostrum laboriosam mollitia maxime, quidem labore velit et, ut placeat in soluta illum voluptate est nihil facere odit commodi neque saepe enim. Consectetur molestias eveniet ex possimus cupiditate consequatur repudiandae explicabo provident? Neque, deleniti placeat.',
-        sender: '7dyg7fduydef',
-        receiver: 'sdsfsffsf7sg'
-    },
-    {
-        id: 'sd7f6tsdfg4rfuyfdyfgf8d',
-        msg: 'Nice man!',
-        sender: 'sdsfsffsf7sg',
-        receiver: '7dyg7fduydef'
-    },
-    {
-        id: '7dudy7dyeuy4yie8hejdudd',
-        msg: 'Whats about you?',
-        sender: 'sdsfsffsf7sg',
-        receiver: '7dyg7fduydef'
-    },
-    {
-        id: '25243uyte7euryweyteuwue',
-        msg: 'I am alright.',
-        sender: '7dyg7fduydef',
-        receiver: 'sdsfsffsf7sg'
-    },
-    {
-        id: 'sd7f6tsdfg4rfuyfdyfgf8d',
-        msg: 'Nice man!',
-        sender: 'sdsfsffsf7sg',
-        receiver: '7dyg7fduydef'
-    },
-    {
-        id: '7dudy7dyeuy4yie8hejdudd',
-        msg: 'Whats about you?',
-        sender: 'sdsfsffsf7sg',
-        receiver: '7dyg7fduydef'
-    },
-    {
-        id: '25243uyte7euryweyteuwue',
-        msg: 'I am alright.',
         sender: '7dyg7fduydef',
         receiver: 'sdsfsffsf7sg'
     },

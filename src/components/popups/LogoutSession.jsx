@@ -14,7 +14,7 @@ function LogoutSession() {
     }
     return (
         <div onClick={handleClick} className={`w-full h-screen absolute top-0 grid parent place-content-center bg-zinc-900/50`}>
-            <div className='w-96 rounded-md bg-zinc-800'>
+            <div className='w-96 rounded-md bg-zinc-800 shadow-2xl'>
                 <div className='bg-zinc-700 p-5 rounded-t-md'>
                     <p className='text-xl font-medium text-zinc-200'>Log out confirmation</p>
                     <p className='text-sm text-zinc-400 mt-3'>Are you sure you want to log out?</p>

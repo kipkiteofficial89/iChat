@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
-function People({ id, profile, name, message }) {
+function People({ id, profile, name, message, newMessagesCount }) {
     const { userid } = useParams();
     const navigate = useNavigate();
 
@@ -15,10 +15,10 @@ function People({ id, profile, name, message }) {
                 <img src={profile} className='w-10 h-10 object-cover flex-shrink-0 rounded-full' alt="profilepic" />
                 <div className='flex flex-col gap-1'>
                     <p className='text-sm font-medium text-zinc-200'>{name}</p>
-                    <p className='text-sm text-zinc-400'>{message.slice(0, 20) + "..."}</p>
+                    <p className={`text-sm text-zinc-400 ${!message && 'hidden'}`}>{message.slice(0, 20) + "..."}</p>
                 </div>
             </div>
-            <p className='px-[6px] py-[1px] text-xs bg-green-500 rounded-full text-center font-bold'>{2}</p>
+            <p className={`px-[6px] py-[1px] text-xs bg-green-500 rounded-full text-center font-bold ${!message && 'hidden'}`}>{newMessagesCount}</p>
         </div>
     )
 }

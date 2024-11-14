@@ -7,6 +7,12 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { store } from './store.js'
 import { Provider } from 'react-redux'
 import { Toaster } from 'react-hot-toast';
+import { io } from 'socket.io-client';
+
+const SOCKET_SERVER_URL = "http://localhost:8080/";
+export const socket = io(SOCKET_SERVER_URL, {
+  transports: ['websocket']
+});
 
 createRoot(document.getElementById('root')).render(
   <Provider store={store}>
@@ -14,8 +20,8 @@ createRoot(document.getElementById('root')).render(
       <DataContextProvider>
         <StrictMode>
           <App />
-          <Toaster />
         </StrictMode>
+        <Toaster />
       </DataContextProvider>
     </GoogleOAuthProvider>
   </Provider>

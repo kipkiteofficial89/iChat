@@ -4,7 +4,7 @@ import React from 'react'
 
 function Splash() {
     return (
-        <div className='w-full h-screen flex flex-col absolute top-0 justify-between py-10 items-center bg-zinc-900'>
+        <div className='w-full h-screen flex flex-col absolute top-0 justify-between py-7 items-center bg-zinc-900'>
             <div></div>
             <div className='flex justify-center items-center flex-col'>
                 <div className='w-28 h-28 grid place-content-center bg-green-500/10 border border-green-500/10 rounded-full'>

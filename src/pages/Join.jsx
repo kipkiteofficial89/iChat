@@ -3,7 +3,7 @@ import { faComments } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useGoogleLogin } from '@react-oauth/google';
 import toast from 'react-hot-toast';
-import { useJoinUserMutation } from '../services/iChatApi';
+import { useJoinUserMutation } from '../services/iChatUsersApi';
 
 function Join() {
     const [isLoading, setIsLoading] = useState(false);
@@ -32,7 +32,7 @@ function Join() {
                 username: json?.family_name.toLowerCase() + json?.id.slice(-2),
                 email: json?.email,
                 phone: '',
-                about: '',
+                about: 'Available for work.',
                 profile: json?.picture
             }
             const result = await joinUser(user).unwrap();

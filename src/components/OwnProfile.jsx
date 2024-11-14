@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect } from 'react'
 import { DataContext } from '../context/DataContext'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPen } from '@fortawesome/free-solid-svg-icons';
-import { useGetUserQuery } from '../services/iChatApi';
+import { useGetUserQuery } from '../services/iChatUsersApi';
 
 function OwnProfile() {
     const [isVisible, setIsVisible] = useState(false);
@@ -37,7 +37,7 @@ function OwnProfile() {
                 </div>
                 <p className='text-sm text-zinc-400 mt-4'>About</p>
                 <div className='flex justify-between items-center mt-2'>
-                    <p className='text-sm text-zinc-200 w-64'>{data?.user?.about === '' ? 'Available for work.' : data?.user?.about}</p>
+                    <p className='text-sm text-zinc-200 w-64'>{data?.user?.about}</p>
                     <button className='h-6 w-6 flex justify-center hover:bg-zinc-700 items-center rounded-md active:bg-zinc-600'>
                         <FontAwesomeIcon
                             icon={faPen}
