@@ -6,11 +6,15 @@ export function DataContextProvider({ children }) {
     const [isOwnProfile, setIsOwnProfile] = useState(false);
     const [isLogout, setIsLogout] = useState(false);
     const [chatId, setChatId] = useState(null);
+    const [isReactBox, setIsReactBox] = useState(false);
+    const [reactions, setReactions] = useState([]);
     return (
         <DataContext.Provider value={{
             chatId, setChatId,
             isOwnProfile, setIsOwnProfile,
-            isLogout, setIsLogout
+            isLogout, setIsLogout,
+            isReactBox, setIsReactBox,
+            reactions, setReactions
         }}>
             {children}
         </DataContext.Provider>

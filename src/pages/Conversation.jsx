@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleInfo, faPaperclip } from '@fortawesome/free-solid-svg-icons';
+import { faCircleInfo, faPaperclip, faSmile, faReply, faEllipsisVertical } from '@fortawesome/free-solid-svg-icons';
 import InfoSingle from '../components/InfoSingle';
 import { useParams } from 'react-router-dom';
 import { useGetUserInfoQuery, useGetUserQuery } from '../services/iChatUsersApi';
@@ -9,6 +9,7 @@ import moment from 'moment';
 import { socket } from '../main'
 import { useDispatch } from 'react-redux';
 import { iChatMessagesApi } from '../services/iChatMessagesApi';
+import { DataContext } from '../context/DataContext';
 
 const allReactionEmojis = [
     { id: 1, emoji: '👍' },
@@ -17,6 +18,12 @@ const allReactionEmojis = [
     { id: 1, emoji: '😮' },
     { id: 1, emoji: '😥' },
     { id: 1, emoji: '😡' },
+]
+
+const msgOptions = [
+    { id: 1, opt: faSmile },
+    { id: 2, opt: faReply },
+    { id: 3, opt: faEllipsisVertical },
 ]
 
 function Conversation() {
@@ -28,6 +35,7 @@ function Conversation() {
     const { data: loginUser } = useGetUserQuery();
     const { data: messages } = useGetConversationQuery(userid);
     const dispatch = useDispatch();
+    const { setIsReactBox, setReactions, reactions } = useContext(DataContext);
 
     const scrollRef = useRef(null);
     const allReactRef = useRef(null);
@@ -38,6 +46,7 @@ function Conversation() {
         if (e.key === 'Enter' && msg !== "") {
             socket.emit('sendMessage', {
                 roomId,
+                genc_id: crypto.randomUUID(),
                 msg,
                 sender: loginUser?.user?._id,
                 receiver: userid
@@ -48,15 +57,10 @@ function Conversation() {
 
     useEffect(() => {
         socket.emit('joinRoom', roomId);
-
         socket.on('sendFromServer', (data) => {
-            const message = {
-                ...data,
-                _id: crypto.randomUUID()
-            }
             dispatch(
                 iChatMessagesApi.util.updateQueryData('getConversation', userid, (draft) => {
-                    draft.push(message);
+                    draft.push(data);
                 })
             )
         })
@@ -73,13 +77,19 @@ function Conversation() {
         }
     }, [messages])
 
-    const handleCreateReaction = (id) => {
-        if (currMsg === "" && currMsg !== id) {
-            setCurrMsg(id);
-        } else if (currMsg !== "" && currMsg !== id) {
-            setCurrMsg(id);
+    const handleCreateReaction = (id, optId) => {
+        if (optId === 1) {
+            if (currMsg === "" && currMsg !== id) {
+                setCurrMsg(id);
+            } else if (currMsg !== "" && currMsg !== id) {
+                setCurrMsg(id);
+            } else {
+                setCurrMsg("");
+            }
+        } else if (optId === 2) {
+            alert(optId);
         } else {
-            setCurrMsg("");
+            alert(optId);
         }
     }
 
@@ -101,11 +111,11 @@ function Conversation() {
         }
     }, [currMsg])
 
-    const reactHandler = (emoji, msgId) => {
+    const reactHandler = (emoji, genc_id) => {
         socket.emit('react', {
             roomId,
             userId: loginUser?.user?._id,
-            msgId,
+            genc_id,
             name: loginUser?.user?.name,
             profile: loginUser?.user?.profile,
             react: emoji,
@@ -117,7 +127,7 @@ function Conversation() {
         socket.on('reactFromServer', (data) => {
             dispatch(
                 iChatMessagesApi.util.updateQueryData('getConversation', userid, (draft) => {
-                    const message = draft.find((msg) => msg._id === data.msgId);
+                    const message = draft.find((msg) => msg.genc_id === data.genc_id);
                     if (message) {
                         const reactionIndex = message.reactions.findIndex((r) => r.userId === data.userId);
                         if (reactionIndex === -1) {
@@ -163,22 +173,40 @@ function Conversation() {
                                 <div key={index} className={`w-full flex ${item?.sender === loginUser?.user?._id ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`group w-max flex gap-2 items-center ${item?.sender === loginUser?.user?._id && 'flex-row-reverse'}`}>
                                         <div className={`mt-[2px] flex flex-col ${item?.sender === loginUser?.user?._id ? 'items-start' : 'items-end'}`}>
-                                            <p className={`text-sm max-w-96 w-max px-3 py-2 ${item?.sender === loginUser?.user?._id ? 'rounded-l-md rounded-b-md bg-green-600' : 'rounded-r-md rounded-b-md bg-zinc-800'} text-zinc-200`} key={index}>{item?.msg}</p>
-                                            {
-                                                item?.reactions?.length !== 0 && (
-                                                    <p className={`bg-zinc-900 -mt-2 ${item?.sender === loginUser?.user?._id ? 'ml-1' : 'mr-1'} py-[1px] px-[5px] border border-zinc-700 w-max rounded-full text-sm text-zinc-200 hover:cursor-pointer select-none`}>{`❤ ${item?.reactions?.length}`}</p>
-                                                )
-                                            }
+                                            <div className={`text-sm max-w-96 w-max px-3 py-2 ${item?.sender === loginUser?.user?._id ? 'rounded-l-md rounded-b-md bg-green-600' : 'rounded-r-md rounded-b-md bg-zinc-800'} text-zinc-200`} key={index}>
+                                                <p>{item?.msg}</p>
+                                                {
+                                                    item?.reactions?.length !== 0 && (
+                                                        <p onClick={() => {
+                                                            setIsReactBox(true)
+                                                            setReactions(item?.reactions);
+                                                        }} className={`bg-zinc-700 -mt-2 ${item?.sender === loginUser?.user?._id ? 'float-start' : 'float-end'} py-[1px] px-[5px] w-max rounded-full text-sm text-zinc-200 hover:cursor-pointer select-none mt-1`}>{`❤ ${item?.reactions?.length}`}</p>
+                                                    )
+                                                }
+                                            </div>
                                         </div>
                                         <div className={`relative`}>
-                                            <p onClick={() => handleCreateReaction(item?._id)} className={`h-7 w-7 ${currMsg !== "" && currMsg === item?._id ? 'visible' : 'invisible'} group-hover:visible grid place-content-center rounded-full hover:cursor-pointer hover:bg-zinc-800 cursor-pointer select-none`}>❤</p>
+                                            <div className={`${currMsg !== "" && currMsg === item?.genc_id ? 'visible' : 'invisible'} ${item?.sender === loginUser?.user?._id && 'flex-row-reverse'} group-hover:visible flex items-center gap-2`}>
+                                                {
+                                                    msgOptions.map((opt) => {
+                                                        return (
+                                                            <div key={opt.id} onClick={() => handleCreateReaction(item?.genc_id, opt.id)} className={`h-7 w-7 grid place-content-center rounded-full hover:cursor-pointer hover:bg-zinc-800 cursor-pointer select-none`}>
+                                                                <FontAwesomeIcon
+                                                                    icon={opt.opt}
+                                                                    className='text-lg text-zinc-500'
+                                                                />
+                                                            </div>
+                                                        )
+                                                    })
+                                                }
+                                            </div>
                                             {
-                                                item?._id === currMsg && (
-                                                    <div ref={allReactRef} className={`flex absolute items-center -top-[3px] ${item?.sender === loginUser?.user?._id ? '-left-48' : '-right-48'} bg-zinc-700 shadow-zinc-900 shadow-2xl w-max px-2 py-1 rounded-lg`}>
+                                                item?.genc_id === currMsg && (
+                                                    <div ref={allReactRef} className={`flex absolute items-center -top-[3px] ${item?.sender === loginUser?.user?._id ? 'right-0 flex-row-reverse' : 'left-0'} bg-zinc-700 shadow-zinc-900 shadow-2xl w-max px-2 py-1 rounded-lg`}>
                                                         {
                                                             allReactionEmojis.map((react, index) => {
                                                                 return (
-                                                                    <div key={index} onClick={() => reactHandler(react.emoji, item?._id)} className='h-7 w-7 hover:bg-zinc-800 grid place-content-center cursor-pointer rounded-full'>
+                                                                    <div key={index} onClick={() => reactHandler(react.emoji, item?.genc_id)} className={`h-7 w-7 hover:bg-zinc-800 grid place-content-center cursor-pointer rounded-full ${react.emoji === item?.reactions?.find(item => item?.userId === loginUser?.user?._id)?.react && 'bg-zinc-800'}`}>
                                                                         <p className='text-md'>{react.emoji}</p>
                                                                     </div>
                                                                 )

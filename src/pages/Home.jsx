@@ -10,13 +10,14 @@ import Splash from './Splash';
 import SessionPopup from '../components/popups/SessionPopup';
 import LogoutSession from '../components/popups/LogoutSession';
 import { useFetchConnectedPeoplesQuery, useGetUserQuery, useSearchPeopleQuery } from '../services/iChatUsersApi';
+import ReactionsPopup from '../components/popups/ReactionsPopup';
 
 function Home() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchInput, setSearchInput] = useState("");
     const [debounce, setDebounce] = useState(searchInput);
     const path = useLocation().pathname;
-    const { isOwnProfile, setIsOwnProfile, isLogout } = useContext(DataContext);
+    const { isOwnProfile, setIsOwnProfile, isLogout, isReactBox } = useContext(DataContext);
     const { isError, refetch } = useGetUserQuery();
     const { data, isFetching } = useSearchPeopleQuery(searchInput, { skip: !debounce });
     const { data: cp } = useFetchConnectedPeoplesQuery();
@@ -38,7 +39,6 @@ function Home() {
         setTimeout(() => {
             setIsLoading(false);
         }, 1000);
-        console.log(cp);
     }, [])
 
     useEffect(() => {
@@ -138,9 +138,11 @@ function Home() {
             </div>
 
             {isOwnProfile && <OwnProfile />}
-            {isLoading && <Splash />}
+            {/* {isLoading && <Splash />} */}
             {isError && <SessionPopup />}
             {isLogout && <LogoutSession />}
+            {isReactBox && <ReactionsPopup />}
+
         </>
     )
 }
