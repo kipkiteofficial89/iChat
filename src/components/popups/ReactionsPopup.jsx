@@ -6,7 +6,7 @@ import { useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { socket } from '../../main';
 import { useGetUserQuery } from '../../services/iChatUsersApi';
-import { iChatMessagesApi } from '../../services/iChatMessagesApi';
+import { iChatMessagesApi, useGetConversationQuery } from '../../services/iChatMessagesApi';
 
 const ReactPeople = ({ name, profile, react, userId, genc_id }) => {
     const { userid } = useParams();
@@ -30,13 +30,20 @@ const ReactPeople = ({ name, profile, react, userId, genc_id }) => {
                     const message = draft.find((msg) => msg.genc_id === data.genc_id);
                     if (message) {
                         const reactionIndex = message.reactions.findIndex((r) => r.userId === data.userId);
-                        message.reactions.splice(reactionIndex, 1);
-                        setIsReactBox(false);
+
+                        if (reactionIndex !== -1) {
+                            message.reactions.splice(reactionIndex, 1);
+                        }
                     }
                 })
-            )
-        })
-    }, []);
+            );
+        });
+
+        return () => {
+            socket.off('removeReactServer');
+        };
+    }, [dispatch, userid]);
+
 
     return (
         <div className='flex items-center justify-between hover:cursor-pointer'>
@@ -69,14 +76,18 @@ const ReactedPeople = ({ items }) => {
     )
 }
 
-function ReactionsPopup() {
+function ReactionsPopup({ genc_id }) {
     const [activeTab, setActiveTab] = useState("All");
-    const { setIsReactBox, reactions } = useContext(DataContext);
+    const { setIsReactBox, isReactBox } = useContext(DataContext);
+    const { userid } = useParams();
+    const { data: messages } = useGetConversationQuery(userid);
     const handleClick = (e) => {
         if (e.target.classList.contains('parent')) {
             setIsReactBox(false);
         }
     }
+
+    const reactions = messages?.find((msg) => msg.genc_id === genc_id)?.reactions;
 
     const liked = reactions.filter((item) => item?.react === '👍');
     const loved = reactions.filter((item) => item?.react === '❤');
@@ -96,7 +107,7 @@ function ReactionsPopup() {
     ]
 
     return (
-        <div onClick={handleClick} className={`w-full h-screen absolute top-0 grid parent place-content-center bg-zinc-900/50`}>
+        <div onClick={handleClick} className={`w-screen ${isReactBox ? 'visible' : 'hidden'} h-screen fixed top-0 left-0 grid parent place-content-center bg-zinc-900/50`}>
             <div className='w-[500px] rounded-md bg-zinc-800 shadow-2xl'>
                 <div className='flex items-center justify-between p-4 border-b border-zinc-700'>
                     <div></div>
@@ -135,3 +146,128 @@ function ReactionsPopup() {
 }
 
 export default ReactionsPopup;
+
+
+
+
+
+
+
+// import React, { useContext, useEffect, useState } from 'react'
+// import { DataContext } from '../../context/DataContext';
+// import { faXmark } from '@fortawesome/free-solid-svg-icons';
+// import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+// import { useParams } from 'react-router-dom';
+// import { useDispatch } from 'react-redux';
+// import { socket } from '../../main';
+// import { useGetUserQuery } from '../../services/iChatUsersApi';
+// import { iChatMessagesApi } from '../../services/iChatMessagesApi';
+
+// function ReactionsPopup() {
+//     const [activeTab, setActiveTab] = useState("All");
+//     const { setIsReactBox, reactions } = useContext(DataContext);
+//     const { userid } = useParams();
+//     const dispatch = useDispatch();
+//     const { data: loginUser } = useGetUserQuery();
+//     const roomId = [loginUser?.user?._id, userid].sort().join('_');
+
+//     const handleClick = (e) => {
+//         if (e.target.classList.contains('parent')) {
+//             setIsReactBox(false);
+//         }
+//     }
+
+//     const removeReaction = (userId, genc_id) => {
+//         socket.emit('removeReact', {
+//             userId,
+//             genc_id,
+//             roomId
+//         })
+//     }
+
+//     useEffect(() => {
+//         socket.on('removeReactServer', (data) => {
+//             dispatch(
+//                 iChatMessagesApi.util.updateQueryData('getConversation', userid, (draft) => {
+//                     const message = draft.find((msg) => msg.genc_id === data.genc_id);
+//                     if (message) {
+//                         const reactionIndex = message.reactions.findIndex((r) => r.userId === data.userId);
+//                         message.reactions.splice(reactionIndex, 1);
+
+//                         setIsReactBox(false);
+//                     }
+//                 })
+//             );
+//         });
+
+//         return () => {
+//             socket.off('removeReactServer');
+//         };
+//     }, [dispatch, userid]);
+
+//     const liked = reactions.filter((item) => item?.react === '👍');
+//     const loved = reactions.filter((item) => item?.react === '❤');
+//     const smiled = reactions.filter((item) => item?.react === '😂');
+//     const surprised = reactions.filter((item) => item?.react === '😮');
+//     const carried = reactions.filter((item) => item?.react === '😥');
+//     const angried = reactions.filter((item) => item?.react === '😡');
+
+//     const options = [
+//         { id: 1, title: 'All', num: reactions.length },
+//         { id: 2, title: '👍', num: liked.length },
+//         { id: 3, title: '❤', num: loved.length },
+//         { id: 4, title: '😂', num: smiled.length },
+//         { id: 5, title: '😮', num: surprised.length },
+//         { id: 6, title: '😥', num: carried.length },
+//         { id: 7, title: '😡', num: angried.length },
+//     ]
+
+//     return (
+//         <div onClick={handleClick} className={`w-full h-screen absolute top-0 grid parent place-content-center bg-zinc-900/50`}>
+//             <div className='w-[500px] rounded-md bg-zinc-800 shadow-2xl'>
+//                 <div className='flex items-center justify-between p-4 border-b border-zinc-700'>
+//                     <div></div>
+//                     <p className='text-xl font-medium text-zinc-200'>Message reactions</p>
+//                     <button onClick={() => setIsReactBox(false)} className='bg-zinc-700 h-9 w-9 grid place-content-center rounded-full text-zinc-200 hover:cursor-pointer flex-shrink-0 hover:bg-zinc-600 active:scale-90 transition-all'>
+//                         <FontAwesomeIcon
+//                             icon={faXmark}
+//                             className='text-lg'
+//                         />
+//                     </button>
+//                 </div>
+//                 <div className='flex item-center gap-1 p-4'>
+//                     {
+//                         options.map((item, index) => {
+//                             return (
+//                                 <div className={`select-none ${item.num === 0 ? 'hidden' : ''}`} key={index} onClick={() => setActiveTab(item.title)}>
+//                                     <p className={`text-md hover:cursor-pointer hover:bg-zinc-700 rounded-md p-3 active:bg-zinc-600 font-medium ${activeTab === item.title ? 'text-green-500' : 'text-zinc-400'}`}>{`${item.title} ${item.num}`}</p>
+//                                     <div className={`w-full h-[3px] rounded-3xl ${activeTab === item.title ? 'bg-green-500' : 'bg-zinc-800 mt-1'}`}></div>
+//                                 </div>
+//                             )
+//                         })
+//                     }
+//                 </div>
+//                 <div className='px-6 flex flex-col gap-5 min-h-32 max-h-96 overflow-y-scroll pb-4'>
+//                     {
+//                         reactions.map((item, index) => {
+//                             return (
+//                                 <div key={index} className='flex items-center justify-between hover:cursor-pointer'>
+//                                     <div className='flex items-center gap-3'>
+//                                         <img className='w-10 h-10 rounded-full object-cover' src={item?.profile} alt="" />
+//                                         <div className='flex flex-col text-zinc-200'>
+//                                             <p className='text-md font-medium'>{item?.name}</p>
+//                                             {item?.userId !== userid && <p onClick={() => removeReaction(item?.userId, item?.genc_id)} className='text-xs text-zinc-400'>Click to remove</p>}
+//                                         </div>
+//                                     </div>
+//                                     <p className='text-2xl'>{item?.react}</p>
+//                                 </div>
+//                             )
+//                         })
+//                     }
+//                 </div>
+//             </div>
+//         </div>
+//     )
+// }
+
+// export default ReactionsPopup;

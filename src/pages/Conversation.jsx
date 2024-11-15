@@ -10,6 +10,7 @@ import { socket } from '../main'
 import { useDispatch } from 'react-redux';
 import { iChatMessagesApi } from '../services/iChatMessagesApi';
 import { DataContext } from '../context/DataContext';
+import ReactionsPopup from '../components/popups/ReactionsPopup';
 
 const allReactionEmojis = [
     { id: 1, emoji: '👍' },
@@ -30,12 +31,13 @@ function Conversation() {
     const [msg, setMsg] = useState("");
     const [isInfo, setIsInfo] = useState(false);
     const [currMsg, setCurrMsg] = useState("");
+    const [selMsgId, setSelMsgId] = useState("");
     const { userid } = useParams();
     const { data } = useGetUserInfoQuery(userid);
     const { data: loginUser } = useGetUserQuery();
     const { data: messages } = useGetConversationQuery(userid);
     const dispatch = useDispatch();
-    const { setIsReactBox, setReactions, reactions } = useContext(DataContext);
+    const { setIsReactBox, isReactBox } = useContext(DataContext);
 
     const scrollRef = useRef(null);
     const allReactRef = useRef(null);
@@ -145,8 +147,6 @@ function Conversation() {
         };
     }, [dispatch, userid]);
 
-
-
     return (
         <div className='w-full flex h-screen'>
             <div className='h-screen' style={{ width: !isInfo ? 'calc(100% - 300px)' : '100%' }}>
@@ -179,7 +179,7 @@ function Conversation() {
                                                     item?.reactions?.length !== 0 && (
                                                         <p onClick={() => {
                                                             setIsReactBox(true)
-                                                            setReactions(item?.reactions);
+                                                            setSelMsgId(item?.genc_id);
                                                         }} className={`bg-zinc-700 -mt-2 ${item?.sender === loginUser?.user?._id ? 'float-start' : 'float-end'} py-[1px] px-[5px] w-max rounded-full text-sm text-zinc-200 hover:cursor-pointer select-none mt-1`}>{`❤ ${item?.reactions?.length}`}</p>
                                                     )
                                                 }
@@ -248,6 +248,8 @@ function Conversation() {
                     <button className='text-sm py-[6px] rounded-md w-full hover:cursor-pointer hover:bg-zinc-700 bg-zinc-800 text-red-300'>Report</button>
                 </div>
             </div>
+
+            {isReactBox && <ReactionsPopup genc_id={selMsgId} />}
         </div>
     )
 }
