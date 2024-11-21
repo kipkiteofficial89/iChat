@@ -1,9 +1,9 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleInfo, faPaperclip, faSmile, faReply, faEllipsisVertical } from '@fortawesome/free-solid-svg-icons';
+import { faCircleInfo, faPaperclip, faSmile, faReply, faEllipsisVertical, faXmark } from '@fortawesome/free-solid-svg-icons';
 import InfoSingle from '../components/InfoSingle';
 import { useParams } from 'react-router-dom';
-import { useGetUserInfoQuery, useGetUserQuery } from '../services/iChatUsersApi';
+import { iChatUsersApi, useGetUserInfoQuery, useGetUserQuery } from '../services/iChatUsersApi';
 import { useGetConversationQuery } from '../services/iChatMessagesApi';
 import moment from 'moment';
 import { socket } from '../main'
@@ -34,10 +34,11 @@ function Conversation() {
     const [selMsgId, setSelMsgId] = useState("");
     const { userid } = useParams();
     const { data } = useGetUserInfoQuery(userid);
+    const [repliedMsg, setRepliedMsg] = useState(null);
     const { data: loginUser } = useGetUserQuery();
     const { data: messages } = useGetConversationQuery(userid);
     const dispatch = useDispatch();
-    const { setIsReactBox, isReactBox } = useContext(DataContext);
+    const { setIsReactBox, isReactBox, onlineUsers } = useContext(DataContext);
 
     const scrollRef = useRef(null);
     const allReactRef = useRef(null);
@@ -51,27 +52,40 @@ function Conversation() {
                 genc_id: crypto.randomUUID(),
                 msg,
                 sender: loginUser?.user?._id,
-                receiver: userid
+                receiver: userid,
+                replyMsg: {
+                    genc_id: repliedMsg?.genc_id,
+                    msg: repliedMsg?.msg
+                }
             })
+            socket.emit('selectedUserId', { receiver: userid, sender: loginUser?.user?._id, roomId });
             setMsg('');
+            setRepliedMsg(null);
         }
     }
 
     useEffect(() => {
-        socket.emit('joinRoom', roomId);
+        if (socket && roomId) {
+            socket.emit('joinRoom', roomId);
+        }
+    }, [socket, roomId]);
+
+    useEffect(() => {
         socket.on('sendFromServer', (data) => {
-            dispatch(
-                iChatMessagesApi.util.updateQueryData('getConversation', userid, (draft) => {
-                    draft.push(data);
-                })
-            )
-        })
+            if (data.sender === userid || data.receiver === userid) {
+                dispatch(
+                    iChatMessagesApi.util.updateQueryData('getConversation', userid, (draft) => {
+                        draft.push(data);
+                    })
+                );
+            }
+        });
 
         return () => {
             socket.emit('joinRoom', roomId);
             socket.off('sendFromServer');
         };
-    }, [roomId]);
+    }, [roomId, userid, dispatch]);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -89,7 +103,8 @@ function Conversation() {
                 setCurrMsg("");
             }
         } else if (optId === 2) {
-            alert(optId);
+            const rmsg = messages.find((msg) => msg.genc_id === id);
+            setRepliedMsg(rmsg);
         } else {
             alert(optId);
         }
@@ -142,10 +157,44 @@ function Conversation() {
             );
         });
 
+        socket.on('removeReactServer', (data) => {
+            dispatch(
+                iChatMessagesApi.util.updateQueryData('getConversation', userid, (draft) => {
+                    const message = draft.find((msg) => msg.genc_id === data.genc_id);
+                    const afterRemoved = message.reactions.filter((react) => react.userId !== data.userId);
+                    message.reactions = afterRemoved;
+                })
+            );
+        });
+
         return () => {
             socket.off('reactFromServer');
+            socket.off('removeReactServer');
         };
-    }, [dispatch, userid]);
+    }, [dispatch, userid, roomId]);
+
+    const isOnline = onlineUsers.find((user) => user.userId === userid);
+
+    useEffect(() => {
+        socket.on('selectedUserIdServer', (data) => {
+            dispatch(
+                iChatUsersApi.util.updateQueryData('fetchConnectedPeoples', undefined, (draft) => {
+                    const findCPR = draft?.connected_peoples?.find((cp) => cp._id === data.receiver);
+                    const findCPS = draft?.connected_peoples?.find((cp) => cp._id === data.sender);
+                    if (findCPR) {
+                        findCPR.updatedAt = new Date().toISOString();
+                    }
+                    if (findCPS) {
+                        findCPS.updatedAt = new Date().toISOString();
+                    }
+                })
+            )
+        })
+
+        return () => {
+            socket.off('selectedUserIdServer');
+        };
+    }, [dispatch, userid, roomId]);
 
     return (
         <div className='w-full flex h-screen'>
@@ -155,7 +204,11 @@ function Conversation() {
                         <img className='w-9 h-9 rounded-full object-cover' src={data?.usr?.profile} alt="receiverprofile" />
                         <div className='flex flex-col'>
                             <p className='text-sm font-medium text-zinc-200'>{data?.usr?.name}</p>
-                            <p className='text-xs text-zinc-400'>Online</p>
+                            <p className={`text-[13px] font-normal ${isOnline ? 'text-green-500' : 'text-zinc-400'}`}>
+                                {
+                                    isOnline ? 'online' : 'offline'
+                                }
+                            </p>
                         </div>
                     </div>
                     <button onClick={() => setIsInfo(val => !val)} className='bg-zinc-800 h-9 w-9 grid place-content-center rounded-full text-zinc-200 hover:cursor-pointer flex-shrink-0 hover:bg-zinc-700 active:scale-90 transition-all'>
@@ -173,14 +226,21 @@ function Conversation() {
                                 <div key={index} className={`w-full flex ${item?.sender === loginUser?.user?._id ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`group w-max flex gap-2 items-center ${item?.sender === loginUser?.user?._id && 'flex-row-reverse'}`}>
                                         <div className={`mt-[2px] flex flex-col ${item?.sender === loginUser?.user?._id ? 'items-start' : 'items-end'}`}>
-                                            <div className={`text-sm max-w-96 w-max px-3 py-2 ${item?.sender === loginUser?.user?._id ? 'rounded-l-md rounded-b-md bg-green-600' : 'rounded-r-md rounded-b-md bg-zinc-800'} text-zinc-200`} key={index}>
+                                            <div className={`text-sm relative max-w-96 w-max px-3 py-2 ${item?.sender === loginUser?.user?._id ? 'rounded-l-md rounded-b-md bg-green-600' : 'rounded-r-md rounded-b-md bg-zinc-800'} text-zinc-200`} key={index}>
+                                                {
+                                                    item?.replyMsg?.msg && (
+                                                        <div className={`w-44 mb-2 rounded-[4px] ${item?.sender === loginUser?.user?._id ? 'bg-green-800/90' : 'bg-zinc-700/70'} py-1 px-2`}>
+                                                            <p>{item?.replyMsg?.msg?.length > 50 ? item?.replyMsg?.msg?.slice(0, 50) + '....' : item?.replyMsg?.msg}</p>
+                                                        </div>
+                                                    )
+                                                }
                                                 <p>{item?.msg}</p>
                                                 {
                                                     item?.reactions?.length !== 0 && (
                                                         <p onClick={() => {
                                                             setIsReactBox(true)
                                                             setSelMsgId(item?.genc_id);
-                                                        }} className={`bg-zinc-700 -mt-2 ${item?.sender === loginUser?.user?._id ? 'float-start' : 'float-end'} py-[1px] px-[5px] w-max rounded-full text-sm text-zinc-200 hover:cursor-pointer select-none mt-1`}>{`❤ ${item?.reactions?.length}`}</p>
+                                                        }} className={`bg-zinc-700 -mt-2 ${item?.sender === loginUser?.user?._id ? 'float-start' : 'float-end'} py-[1px] px-[5px] w-max rounded-full text-sm text-zinc-200 hover:cursor-pointer select-none mt-1`}>{`${item?.reactions?.map(rt => rt?.react)} ${item?.reactions?.length}`}</p>
                                                     )
                                                 }
                                             </div>
@@ -224,13 +284,35 @@ function Conversation() {
                     <div ref={scrollRef}></div>
                 </div>
                 {/* Right conversation message section */}
-                <div className='h-[55px] border-t border-zinc-800 px-3 flex items-center gap-4'>
-                    <FontAwesomeIcon
-                        icon={faPaperclip}
-                        className='text-md text-zinc-500 hover:cursor-pointer'
-                    />
-                    <input onChange={(e) => setMsg(e.target.value)} onKeyDown={sendMessageInputHandler} autoFocus={true} className='bg-transparent border-none outline-none placeholder:text-zinc-500 text-md caret-zinc-500 w-full text-zinc-200' type="text" placeholder='Type a message' value={msg} />
-                    <p className='text-sm font-medium text-zinc-500 select-none'>enter</p>
+                <div className='relative'>
+                    {
+                        repliedMsg && (
+                            <div className='w-full flex items-center justify-between px-3 py-1 bg-zinc-800 absolute -top-5 border-t border-b border-zinc-700'>
+                                <div className='flex items-center gap-3'>
+                                    <FontAwesomeIcon
+                                        icon={faReply}
+                                        className='text-sm text-zinc-500'
+                                    />
+                                    <p className='text-sm text-zinc-500'>{repliedMsg?.msg?.length >= 50 ? repliedMsg?.msg?.slice(0, 50) + ' .....' : repliedMsg?.msg}</p>
+                                </div>
+                                <FontAwesomeIcon
+                                    icon={faXmark}
+                                    onClick={() => {
+                                        setRepliedMsg(null);
+                                    }}
+                                    className='text-sm font-normal text-zinc-500 hover:cursor-pointer'
+                                />
+                            </div>
+                        )
+                    }
+                    <div className='h-[55px] px-3 border-t border-zinc-800 flex items-center gap-4'>
+                        <FontAwesomeIcon
+                            icon={faPaperclip}
+                            className='text-md text-zinc-500 hover:cursor-pointer'
+                        />
+                        <input onChange={(e) => setMsg(e.target.value)} onKeyDown={sendMessageInputHandler} autoFocus={true} className='bg-transparent border-none outline-none placeholder:text-zinc-500 text-md caret-zinc-500 w-full text-zinc-200' type="text" placeholder='Type a message' value={msg} />
+                        <p className='text-sm font-medium text-zinc-500 select-none'>enter</p>
+                    </div>
                 </div>
             </div>
             <div className={`w-[300px] border-l border-zinc-800 overflow-y-scroll pb-3 ${isInfo && 'hidden'}`}>

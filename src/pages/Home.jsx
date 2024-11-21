@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faMagnifyingGlass, faCompass, faUser } from '@fortawesome/free-solid-svg-icons'
+import { faMagnifyingGlass, faCompass, faUser, faXmark } from '@fortawesome/free-solid-svg-icons'
 import People from '../components/People';
 import { Outlet, useLocation } from 'react-router-dom';
 import DefaultConversation from '../components/DefaultConversation'
@@ -10,16 +10,18 @@ import Splash from './Splash';
 import SessionPopup from '../components/popups/SessionPopup';
 import LogoutSession from '../components/popups/LogoutSession';
 import { useFetchConnectedPeoplesQuery, useGetUserQuery, useSearchPeopleQuery } from '../services/iChatUsersApi';
+import { socket } from '../main';
 
 function Home() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchInput, setSearchInput] = useState("");
     const [debounce, setDebounce] = useState(searchInput);
     const path = useLocation().pathname;
-    const { isOwnProfile, setIsOwnProfile, isLogout } = useContext(DataContext);
+    const { isOwnProfile, setIsOwnProfile, isLogout, setOnlineUsers } = useContext(DataContext);
     const { isError, refetch } = useGetUserQuery();
     const { data, isFetching } = useSearchPeopleQuery(searchInput, { skip: !debounce });
     const { data: cp } = useFetchConnectedPeoplesQuery();
+    const { data: loginUser } = useGetUserQuery();
 
     const searchInputHandler = (e) => {
         const value = e.target.value;
@@ -52,16 +54,28 @@ function Home() {
         }
     }, []);
 
+    useEffect(() => {
+        socket.emit('onlineUser', loginUser?.user?._id);
+        socket.on('onlineUserServer', (data) => {
+            setOnlineUsers(data);
+        })
+    }, [loginUser]);
+
     return (
         <>
             <div className='w-full h-screen bg-zinc-900 flex'>
                 <div className='w-[350px] h-screen border-r border-zinc-800'>
                     <div className='w-full h-[65px] flex items-center px-3 justify-between border-b border-zinc-800'>
                         <div className='relative'>
-                            <input onChange={searchInputHandler} className='bg-zinc-800 text-sm py-[9px] pl-[34px] pr-3 w-[235px] rounded-full outline-none caret-zinc-500 text-zinc-200 placeholder:text-zinc-500 focus:outline-zinc-500 focus:outline-2' type="text" placeholder='Search' />
+                            <input onChange={searchInputHandler} className='bg-zinc-800 text-sm py-[9px] pl-[34px] pr-3 w-[235px] rounded-full outline-none caret-zinc-500 text-zinc-200 placeholder:text-zinc-500 focus:outline-zinc-500 focus:outline-2' type="text" placeholder='Search' value={searchInput} />
                             <FontAwesomeIcon
                                 icon={faMagnifyingGlass}
                                 className='absolute text-zinc-500 text-sm top-[12px] left-[13px]'
+                            />
+                            <FontAwesomeIcon
+                                icon={faXmark}
+                                className={`absolute text-zinc-500 text-md top-[11px] hover:cursor-pointer right-[13px] ${searchInput ? 'visible' : 'hidden'}`}
+                                onClick={() => setSearchInput("")}
                             />
                         </div>
                         <div className='flex items-center gap-2'>
@@ -112,18 +126,20 @@ function Home() {
                                         <p className='text-zinc-500 text-sm mt-4'>Connect people by searching at the top.</p>
                                     </div>
                                 ) : (
-                                    cp?.connected_peoples?.map(({ _id, name, profile }) => {
-                                        return (
-                                            <People
-                                                key={_id}
-                                                id={_id}
-                                                name={name}
-                                                profile={profile}
-                                                message={""}
-                                                newMessagesCount={0}
-                                            />
-                                        )
-                                    })
+                                    cp?.connected_peoples?.slice()
+                                        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+                                        ?.map(({ _id, name, profile }) => {
+                                            return (
+                                                <People
+                                                    key={_id}
+                                                    id={_id}
+                                                    name={name}
+                                                    profile={profile}
+                                                    message={""}
+                                                    newMessagesCount={0}
+                                                />
+                                            )
+                                        })
                                 )
                             )
                         }
