@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleInfo, faPaperclip, faSmile, faReply, faEllipsisVertical, faXmark } from '@fortawesome/free-solid-svg-icons';
 import InfoSingle from '../components/InfoSingle';
 import { useParams } from 'react-router-dom';
-import { iChatUsersApi, useGetUserInfoQuery, useGetUserQuery } from '../services/iChatUsersApi';
+import { useFetchConnectedPeoplesQuery, useGetUserInfoQuery, useGetUserQuery } from '../services/iChatUsersApi';
 import { useGetConversationQuery } from '../services/iChatMessagesApi';
 import moment from 'moment';
 import { socket } from '../main'
@@ -39,6 +39,7 @@ function Conversation() {
     const { data: messages } = useGetConversationQuery(userid);
     const dispatch = useDispatch();
     const { setIsReactBox, isReactBox, onlineUsers } = useContext(DataContext);
+    const { refetch } = useFetchConnectedPeoplesQuery()
 
     const scrollRef = useRef(null);
     const allReactRef = useRef(null);
@@ -47,6 +48,9 @@ function Conversation() {
 
     const sendMessageInputHandler = async (e) => {
         if (e.key === 'Enter' && msg !== "") {
+            setTimeout(() => {
+                refetch()
+            }, 10)
             socket.emit('sendMessage', {
                 roomId,
                 genc_id: crypto.randomUUID(),
@@ -58,7 +62,7 @@ function Conversation() {
                     msg: repliedMsg?.msg
                 }
             })
-            socket.emit('selectedUserId', { receiver: userid, sender: loginUser?.user?._id, roomId });
+            // socket.emit('updateChat', { receiver: userid, sender: loginUser?.user?._id, roomId });
             setMsg('');
             setRepliedMsg(null);
         }
@@ -175,26 +179,26 @@ function Conversation() {
 
     const isOnline = onlineUsers.find((user) => user.userId === userid);
 
-    useEffect(() => {
-        socket.on('selectedUserIdServer', (data) => {
-            dispatch(
-                iChatUsersApi.util.updateQueryData('fetchConnectedPeoples', undefined, (draft) => {
-                    const findCPR = draft?.connected_peoples?.find((cp) => cp._id === data.receiver);
-                    const findCPS = draft?.connected_peoples?.find((cp) => cp._id === data.sender);
-                    if (findCPR) {
-                        findCPR.updatedAt = new Date().toISOString();
-                    }
-                    if (findCPS) {
-                        findCPS.updatedAt = new Date().toISOString();
-                    }
-                })
-            )
-        })
+    // useEffect(() => {
+    //     socket.on('updateChatServer', (data) => {
+    //         dispatch(
+    //             iChatUsersApi.util.updateQueryData('fetchConnectedPeoples', undefined, (draft) => {
+    //                 const findCPR = draft?.connected_peoples?.find((cp) => cp._id === data.receiver);
+    //                 const findCPS = draft?.connected_peoples?.find((cp) => cp._id === data.sender);
+    //                 if (findCPR) {
+    //                     findCPR.createdAt = new Date().toISOString();
+    //                 }
+    //                 if (findCPS) {
+    //                     findCPS.createdAt = new Date().toISOString();
+    //                 }
+    //             })
+    //         )
+    //     })
 
-        return () => {
-            socket.off('selectedUserIdServer');
-        };
-    }, [dispatch, userid, roomId]);
+    //     return () => {
+    //         socket.off('selectedUserIdServer');
+    //     };
+    // }, [dispatch, userid, roomId]);
 
     return (
         <div className='w-full flex h-screen'>

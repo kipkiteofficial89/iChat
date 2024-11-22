@@ -126,20 +126,18 @@ function Home() {
                                         <p className='text-zinc-500 text-sm mt-4'>Connect people by searching at the top.</p>
                                     </div>
                                 ) : (
-                                    cp?.connected_peoples?.slice()
-                                        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-                                        ?.map(({ _id, name, profile }) => {
-                                            return (
-                                                <People
-                                                    key={_id}
-                                                    id={_id}
-                                                    name={name}
-                                                    profile={profile}
-                                                    message={""}
-                                                    newMessagesCount={0}
-                                                />
-                                            )
-                                        })
+                                    cp?.connected_peoples?.map(({ _id, name, profile }) => {
+                                        return (
+                                            <People
+                                                key={_id}
+                                                id={_id}
+                                                name={name}
+                                                profile={profile}
+                                                message={""}
+                                                newMessagesCount={0}
+                                            />
+                                        )
+                                    })
                                 )
                             )
                         }
